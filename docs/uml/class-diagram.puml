@@ -1,0 +1,283 @@
+@startuml class-diagram
+
+' ==============================
+'  API GATEWAY MICROSOFT
+' ==============================
+package "API Gateway" {
+  class RateLimitFilter {
+    + boolean isRequestAllowed(HttpRequest request)
+  }
+  class LoggingFilter {
+    + void logRequest(HttpRequest request)
+  }
+  API_Gateway --> RateLimitFilter
+  API_Gateway --> LoggingFilter
+}
+
+' ==============================
+'  USER MANAGEMENT SERVICE
+' ==============================
+package "Common" {
+  class Address {
+    - String addressId
+    - String streetLine1
+    - String streetLine2
+    - String city
+    - String state
+    - String country
+    - String zipCode
+    + getters & setters
+  }
+}
+
+' ==============================
+'  AUTHENTICATION SERVICE
+' ==============================
+package "Authentication Service" {
+    class AuthController {
+      - AuthService authService
+        + register(RegisterRequest request)
+    }
+
+    class AuthService {
+      - UserClient userClient
+        + registerUser(RegisterRequest request): UserResponse
+    }
+
+    class UserClient {
+        + createUser(UserRequest request): UserResponse
+    }
+
+    class RegisterRequest <<DTO>> {
+        - String name
+        - String email
+        - String password
+    }
+
+    class UserRequest <<DTO>> {
+        + String name
+        + String email
+        + String passwordHash
+        + String role
+    }
+
+    class UserResponse <<DTO>> {
+        + Long id
+        + String name
+        + String email
+        + String role
+    }
+
+    AuthController --> AuthService
+    AuthService --> UserClient
+    AuthService --> RegisterRequest
+    UserClient --> UserRequest
+    UserClient --> UserResponse
+}
+
+' ==============================
+'  USER MANAGEMENT SERVICE
+' ==============================
+package "User Management Service" {
+  class User {
+    - Long id
+    - String name
+    - String email
+    - String password
+    - UserRole role
+    - boolean isActive
+    - List<Address> addresses
+  }
+  class AdminService {
+    + void approveSeller(User seller)
+    + void suspendUser(Long userId)
+    + void activateUser(Long userId)
+    + Address addAddress(Long userId, Address address)
+    + void removeAddress(Long userId, String addressId)
+  }
+  class UserRepository {
+    + User findByEmail(String email)
+  }
+  User --> UserRepository
+  AdminService --> UserRepository
+  User --> Address
+}
+
+' ==============================
+'  PRODUCT CATALOG SERVICE
+' ==============================
+package "Product Catalog Service" {
+  class Product {
+    - Long id
+    - Long sellerId
+    - String name
+    - String description
+    - Double price
+    - Integer stockQuantity
+    - boolean isAvailable
+  }
+  class Category {
+    - Long id
+    - String name
+  }
+  interface ProductRepository {
+    + List<Product> findByCategory(String category)
+    + List<Product> findBySellerId(Long sellerId)
+  }
+  interface ProductService {
+    - ProductRepository productRepository
+
+    + Product createProduct(Product product)
+    + Product updateProduct(Product product)
+    + List<Product> getProductsByCategory(String category)
+    + List<Product> getProductsBySeller(Long sellerId)
+    + List<Product> getAllProducts()
+  }
+
+  interface ProductController {
+    - ProductService productService
+
+    + Product createProduct(Product product)
+    + Product updateProduct(Product product)
+    + Product getProduct(Long productId)
+    + List<Product> getProductsByCategory(String category)
+    + List<Product> getProductsBySeller(Long sellerId)
+    + List<Product> getAllProducts()
+  }
+
+  Product --> Category
+  Product --> ProductRepository
+  ProductService --> ProductRepository
+}
+
+' ==============================
+'  INVENTORY SERVICE
+' ==============================
+package "Inventory Service" {
+  class Inventory {
+    + Long id
+    + Long productId
+    + Integer stockQuantity
+  }
+  interface InventoryRepository {
+    + Inventory findByProductId(Long productId)
+  }
+  interface InventoryService {
+    - InventoryRepository inventoryRepository
+  
+    + void updateStock(Long productId, int quantity)
+  }
+
+  interface ProductClient {
+    + Product getProductById(Long productId)
+  }
+
+  interface InventoryController {
+    - InventoryService inventoryService
+
+    + void updateStock(Long productId, int quantity)
+  }
+
+  Inventory --> InventoryRepository
+  InventoryService --> InventoryRepository
+}
+
+' ==============================
+'  ORDER SERVICE
+' ==============================
+package "Order Service" {
+  class Order {
+    + Long id
+    + User customer
+    + List<OrderItem> items
+    + OrderStatus status
+  }
+  class OrderItem {
+    + Long id
+    + Product product
+    + Integer quantity
+  }
+  interface OrderRepository {
+    + Order findById(Long id)
+  }
+  interface OrderService {
+    + Order createOrder(User user, List<OrderItem> items)
+    + void updateOrderStatus(Long orderId, OrderStatus status)
+  }
+  Order --> OrderItem
+  Order --> OrderRepository
+  OrderService --> OrderRepository
+}
+
+' ==============================
+'  PAYMENT SERVICE
+' ==============================
+package "Payment Service" {
+  class Payment {
+    + Long id
+    + Order order
+    + Double amount
+    + PaymentStatus status
+    + Address billingAddress
+  }
+  class PaymentGatewayAdapter {
+    + Payment processPayment(Order order)
+  }
+  interface PaymentRepository {
+    + Payment findByOrderId(Long orderId)
+  }
+  interface PaymentService {
+    + Payment processPayment(Order order)
+    + void refundPayment(Long paymentId)
+  }
+  Payment --> PaymentRepository
+  PaymentService --> PaymentRepository
+  Payment --> PaymentGatewayAdapter
+}
+
+' ==============================
+'  SHIPPING SERVICE
+' ==============================
+package "Shipping Service" {
+  class Shipment {
+    + Long id
+    + Order order
+    + String trackingNumber
+    + String carrier
+    + Address shippingAddress
+  }
+  interface ShippingRepository {
+    + Shipment findByOrderId(Long orderId)
+  }
+  interface ShippingService {
+    + Shipment createShipping(Order order)
+    + void updateShippingStatus(Long shippingId, String status)
+  }
+  Shipment --> ShippingRepository
+  ShippingService --> ShippingRepository
+}
+
+' ==============================
+'  EVENT HANDLING (RabbitMQ & Kafka)
+' ==============================
+package "Event Handling" {
+  class EventPublisher {
+    + void publish(String topic, String message)
+  }
+  class EventConsumer {
+    + void consume(String topic, String message)
+  }
+  class OrderEvent {
+    + Long orderId
+    + OrderStatus status
+  }
+  class PaymentEvent {
+    + Long paymentId
+    + PaymentStatus status
+  }
+  Order --> OrderEvent
+  Payment --> PaymentEvent
+  EventPublisher --> EventConsumer
+}
+
+@enduml

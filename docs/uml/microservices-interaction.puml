@@ -1,0 +1,74 @@
+@startuml microservices-interaction
+title BuStore Microservices Architecture
+
+actor Customer
+actor Admin
+actor Seller
+
+package "API Gateway" {
+    
+}
+
+package "Authentication & User Management" {
+    [Auth Service] 
+    [User Service]
+}
+
+package "Product & Inventory Management" {
+    [Product Service] 
+    [Inventory Service]
+}
+
+package "Order & Payment Processing" {
+    [Order Service]
+    [Payment Service]
+    [Shipping Service]
+}
+
+package "Customer Engagement" {
+    [Review Service]
+    [Recommendation Engine]
+    [Notification ervice]
+}
+
+package "Event-Driven Communication" {
+    [RabbitMQ] 
+    [Kafka] 
+}
+
+package "External Systems" {
+    [MySQL Database]
+    [Payment Provider (Stripe/PayPal)]
+    [Monitoring (ELK, Grafana, Prometheus)]
+}
+
+Customer --> [API Gateway]
+Seller --> [API Gateway]
+Admin --> [API Gateway]
+
+[API Gateway] --> [Auth Service]
+[API Gateway] --> [User Service]
+[API Gateway] --> [Product Service]
+[API Gateway] --> [Inventory Service]
+[API Gateway] --> [Order Service]
+[API Gateway] --> [Payment Service]
+[API Gateway] --> [Shipping Service]
+[API Gateway] --> [Review Service]
+[API Gateway] --> [Recommendation Engine]
+[API Gateway] --> [Notification Service]
+
+[Order Service] --> [RabbitMQ] : Publishes Order Events
+[Payment Service] --> [RabbitMQ] : Publishes Payment Events
+[Inventory Service] --> [RabbitMQ] : Listens for Stock Updates
+
+[Recommendation Engine] --> [Kafka] : Consumes User Activity
+[Analytics Service] --> [Kafka] : Processes Events
+
+[Order Service] --> [MySQL Database]
+[Product Service] --> [MySQL Database]
+[User Service] --> [MySQL Database]
+
+[Payment Service] --> [Payment Provider (Stripe/PayPal)]
+[Monitoring (ELK, Grafana, Prometheus)] --> [API Gateway]
+
+@enduml
