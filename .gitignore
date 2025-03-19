@@ -1,0 +1,7 @@
+.idea/
+*.log
+*.tmp
+target/
+node_modules/
+.env
+
