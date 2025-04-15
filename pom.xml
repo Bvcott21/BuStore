@@ -9,6 +9,7 @@
 
     <modules>
         <module>discovery-server</module>
+        <module>api-gateway</module>
     </modules>
 
     <properties>
@@ -35,11 +36,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- <dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency> -->
         </dependencies>
     </dependencyManagement>
 
